@@ -1,5 +1,7 @@
 package com.vb2.httpserver.core;
 
+import com.vb2.httpserver.core.io.WebRootHandler;
+import com.vb2.httpserver.core.io.WebRootNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,17 +28,19 @@ public class ServerListenerThread extends Thread {
             while (serverSocket.isBound() && !serverSocket.isClosed()) {
                 Socket socket = serverSocket.accept();
                 LOGGER.info(" * Connection is accepted: " + socket.getInetAddress());
-                HttpConnectionWorkerThread workerThread = new HttpConnectionWorkerThread(socket);
+                HttpConnectionWorkerThread workerThread = new HttpConnectionWorkerThread(socket, webroot);
                 workerThread.start();
             }
         } catch (IOException e) {
             LOGGER.error("Problem with setting socket");
+            throw new RuntimeException(e);
         } finally {
             if (serverSocket != null) {
                 try {
                     serverSocket.close();
                     LOGGER.info("ServerSocket closed.");
                 } catch (IOException e) {
+                    LOGGER.error("Problem with closing server socket");
                 }
             }
         }

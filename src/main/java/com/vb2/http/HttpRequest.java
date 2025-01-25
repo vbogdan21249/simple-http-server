@@ -91,10 +91,10 @@ public class HttpRequest extends HttpMessage {
 
     @Override
     public String toString() {
-        return "HttpRequest{" +
-                "method=" + method.name() +
-                ", requestTarget='" + requestTarget + '\'' +
-                ", httpVersion='" + originalHttpVersion + '\'' +
+        return "HttpRequest{\n" +
+                "\n  method=" + method.name() +
+                ",\n  requestTarget='" + requestTarget + '\'' +
+                ",\n  httpVersion='" + originalHttpVersion + '\'' +
                 '}';
     }
 
