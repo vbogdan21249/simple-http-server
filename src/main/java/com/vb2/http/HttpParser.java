@@ -15,34 +15,46 @@ public class HttpParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpParser.class);
 
     public HttpRequest parseHttpRequest(InputStream inputStream) throws HttpParsingException {
-        InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+        LOGGER.info(" * Parsing HTTP request started.");
+        InputStreamReader reader = new InputStreamReader(inputStream);
 
         HttpRequest request = new HttpRequest();
         try {
             parseRequestLine(reader, request);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
         }
 
         try {
             parseHeaders(reader, request);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
         }
 
         parseBody(reader, request);
-
+        LOGGER.info(" * Parsing HTTP request finished.");
         return request;
+    }
+    public String getRawRequest(InputStream inputStream) throws IOException {
+        InputStreamReader in = new InputStreamReader(inputStream);
+        BufferedReader request = new BufferedReader(in);
+
+        int i;
+        StringBuffer sb = new StringBuffer();
+        while ((i = request.read()) != -1) {
+            sb.append((char) i);
+        }
+
+        return sb.toString();
     }
 
     private void parseRequestLine(InputStreamReader reader, HttpRequest request) throws IOException, HttpParsingException {
-
-        BufferedReader bufferedReader = new BufferedReader(reader);
-        String requestLine = bufferedReader.readLine();
+        BufferedReader in = new BufferedReader(reader);
+        String requestLine = in.readLine();
 
         String[] lineElements = requestLine.split(" ");
         if (lineElements.length != 3) {
-            LOGGER.warn("Invalid request line: [{}]", requestLine);
+            LOGGER.error("Invalid request line: [{}]", requestLine);
             throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
         }
 
@@ -65,6 +77,7 @@ public class HttpParser {
         try {
             request.setHttpVersion(lineElements[2]);
         } catch (BadHttpVersionException e) {
+            LOGGER.error("Invalid HTTP version: [{}]", lineElements[2]);
             throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
         }
     }
@@ -77,6 +90,7 @@ public class HttpParser {
         while ((line = bufferedReader.readLine()) != null && !line.isEmpty()) {
             int colonIndex = line.indexOf(':');
             if (colonIndex == -1) {
+                LOGGER.error("No colon found in header: [{}]", line);
                 throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
             }
 
@@ -86,7 +100,6 @@ public class HttpParser {
             if (headerName.isEmpty() || headerValue.isEmpty()) {
                 throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
             }
-
             headers.put(headerName, headerValue);
         }
 
